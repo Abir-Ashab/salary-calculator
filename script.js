@@ -1,4 +1,4 @@
-// Application State
+import { parseTimeString, formatTime } from './timeUtils.js';
 class TimeTrackerApp {
     constructor() {
         this.timeEntries = this.loadFromStorage('timeEntries', []);
@@ -108,44 +108,7 @@ class TimeTrackerApp {
         document.getElementById('dateInput').value = today;
     }
     
-    // Time Parsing
-    parseTimeString(timeStr) {
-        const patterns = [
-            /^(\d+)h(\d+)m$/,     // 8h30m
-            /^(\d+)h$/,           // 8h
-            /^(\d+)m$/,           // 30m
-            /^(\d+):(\d+)$/,      // 8:30
-            /^(\d+)\.(\d+)$/      // 8.5
-        ];
-        
-        for (const pattern of patterns) {
-            const match = timeStr.match(pattern);
-            if (match) {
-                if (pattern.toString().includes('h') && pattern.toString().includes('m')) {
-                    return { hours: parseInt(match[1]), minutes: parseInt(match[2]), valid: true };
-                } else if (pattern.toString().includes('h')) {
-                    return { hours: parseInt(match[1]), minutes: 0, valid: true };
-                } else if (pattern.toString().includes('m')) {
-                    return { hours: 0, minutes: parseInt(match[1]), valid: true };
-                } else if (pattern.toString().includes(':')) {
-                    return { hours: parseInt(match[1]), minutes: parseInt(match[2]), valid: true };
-                } else if (pattern.toString().includes('\\.')) {
-                    const hours = parseInt(match[1]);
-                    const minutes = Math.round(parseFloat(`0.${match[2]}`) * 60);
-                    return { hours, minutes, valid: true };
-                }
-            }
-        }
-        
-        return { hours: 0, minutes: 0, valid: false };
-    }
-    
-    // Time Formatting
-    formatTime(totalMinutes) {
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-    }
+
     
     // Date Formatting
     formatDate(dateStr) {
@@ -180,7 +143,7 @@ class TimeTrackerApp {
             return;
         }
         
-        const parsed = this.parseTimeString(timeStr);
+        const parsed = parseTimeString(timeStr);
         
         if (!parsed.valid) {
             this.showValidationError(timeInput, 'Invalid time format. Try: 8h30m, 8h, 30m, 8:30');
@@ -205,7 +168,7 @@ class TimeTrackerApp {
         this.updateUI();
         this.populateMonthFilter();
         
-        this.showToast(`Added ${this.formatTime(parsed.hours * 60 + parsed.minutes)} for ${this.formatDate(dateStr)}`, 'success');
+        this.showToast(`Added ${formatTime(parsed.hours * 60 + parsed.minutes)} for ${this.formatDate(dateStr)}`, 'success');
         
         // Animate the add button
         this.animateButton(document.querySelector('.btn-add'));
@@ -369,7 +332,7 @@ class TimeTrackerApp {
         // Today's hours
         const todayEntries = this.timeEntries.filter(entry => entry.date === today);
         const todayMinutes = this.calculateTotalMinutes(todayEntries);
-        document.getElementById('todayHours').textContent = this.formatTime(todayMinutes);
+        document.getElementById('todayHours').textContent = formatTime(todayMinutes);
         
         // This month's data
         const monthEntries = this.timeEntries.filter(entry => {
@@ -381,7 +344,7 @@ class TimeTrackerApp {
         const monthMinutes = this.calculateTotalMinutes(monthEntries);
         const monthEarnings = Math.round((monthMinutes / 60) * this.hourlyRate);
         
-        document.getElementById('thisMonthHours').textContent = this.formatTime(monthMinutes);
+        document.getElementById('thisMonthHours').textContent = formatTime(monthMinutes);
         document.getElementById('monthlyEarnings').textContent = `${monthEarnings.toLocaleString()}`;
     }
     
@@ -415,7 +378,7 @@ class TimeTrackerApp {
                 <div class="time-entry">
                     <div class="entry-info">
                         <div class="entry-date">${this.formatDate(entry.date)}</div>
-                        <div class="entry-time">${entry.original} → ${this.formatTime(totalMinutes)} → ${earnings}</div>
+                        <div class="entry-time">${entry.original} → ${formatTime(totalMinutes)} → ${earnings}</div>
                     </div>
                     <div class="entry-actions">
                         <button class="delete-btn" onclick="app.removeTimeEntry(${entry.id})" title="Delete entry">
@@ -489,7 +452,7 @@ class TimeTrackerApp {
                 </div>
                 <div class="month-stats">
                     <div class="stat-item">
-                        <span class="stat-value">${this.formatTime(data.totalMinutes)}</span>
+                        <span class="stat-value">${formatTime(data.totalMinutes)}</span>
                         <span>Total Hours</span>
                     </div>
                     <div class="stat-item">
@@ -543,7 +506,7 @@ class TimeTrackerApp {
         const uniqueDays = new Set(this.timeEntries.map(e => e.date)).size;
         
         return {
-            totalHours: this.formatTime(totalMinutes),
+            totalHours: formatTime(totalMinutes),
             totalEarnings: totalEarnings,
             workDays: uniqueDays,
             avgHoursPerDay: uniqueDays > 0 ? (totalMinutes / uniqueDays / 60).toFixed(1) : 0
