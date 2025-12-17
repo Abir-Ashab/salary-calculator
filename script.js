@@ -1,8 +1,13 @@
+import { CONSTANTS } from "./constants.js";
+
 // Application State
 class TimeTrackerApp {
   constructor() {
     this.timeEntries = this.loadFromStorage("timeEntries", []);
-    this.hourlyRate = this.loadFromStorage("hourlyRate", 300);
+    this.hourlyRate = this.loadFromStorage(
+      "hourlyRate",
+      CONSTANTS.DEFAULT_HOURLY_RATE
+    );
     this.currentFilter = "all";
     this.theme = this.loadFromStorage("theme", "light");
 
@@ -20,7 +25,7 @@ class TimeTrackerApp {
     // Hide loading screen after initialization
     setTimeout(() => {
       this.hideLoading();
-    }, 2000);
+    }, CONSTANTS.LOADING_SCREEN_DELAY_MS);
   }
 
   // Loading Screen Management
@@ -37,7 +42,7 @@ class TimeTrackerApp {
 
     setTimeout(() => {
       loadingScreen.style.display = "none";
-    }, 500);
+    }, CONSTANTS.LOADING_SCREEN_FADE_MS);
   }
 
   // Local Storage Management
@@ -111,39 +116,39 @@ class TimeTrackerApp {
   // Time Parsing
   parseTimeString(timeStr) {
     const patterns = [
-      /^(\d+)h(\d+)m$/, // 8h30m
-      /^(\d+)h$/, // 8h
-      /^(\d+)m$/, // 30m
-      /^(\d+):(\d+)$/, // 8:30
-      /^(\d+)\.(\d+)$/, // 8.5
+      { regex: /^(\d+)h(\d+)m$/, type: "hm" },
+      { regex: /^(\d+)h$/, type: "h" },
+      { regex: /^(\d+)m$/, type: "m" },
+      { regex: /^(\d+):(\d+)$/, type: "colon" },
+      { regex: /^(\d+)\.(\d+)$/, type: "decimal" },
     ];
 
-    for (const pattern of patterns) {
-      const match = timeStr.match(pattern);
+    for (const { regex, type } of patterns) {
+      const match = timeStr.match(regex);
       if (match) {
-        if (
-          pattern.toString().includes("h") &&
-          pattern.toString().includes("m")
-        ) {
-          return {
-            hours: parseInt(match[1]),
-            minutes: parseInt(match[2]),
-            valid: true,
-          };
-        } else if (pattern.toString().includes("h")) {
-          return { hours: parseInt(match[1]), minutes: 0, valid: true };
-        } else if (pattern.toString().includes("m")) {
-          return { hours: 0, minutes: parseInt(match[1]), valid: true };
-        } else if (pattern.toString().includes(":")) {
-          return {
-            hours: parseInt(match[1]),
-            minutes: parseInt(match[2]),
-            valid: true,
-          };
-        } else if (pattern.toString().includes("\\.")) {
-          const hours = parseInt(match[1]);
-          const minutes = Math.round(parseFloat(`0.${match[2]}`) * 60);
-          return { hours, minutes, valid: true };
+        switch (type) {
+          case "hm":
+            return {
+              hours: parseInt(match[1]),
+              minutes: parseInt(match[2]),
+              valid: true,
+            };
+          case "h":
+            return { hours: parseInt(match[1]), minutes: 0, valid: true };
+          case "m":
+            return { hours: 0, minutes: parseInt(match[1]), valid: true };
+          case "colon":
+            return {
+              hours: parseInt(match[1]),
+              minutes: parseInt(match[2]),
+              valid: true,
+            };
+          case "decimal":
+            const hours = parseInt(match[1]);
+            const minutes = Math.round(
+              parseFloat(`0.${match[2]}`) * CONSTANTS.MINUTES_PER_HOUR
+            );
+            return { hours, minutes, valid: true };
         }
       }
     }
@@ -153,8 +158,8 @@ class TimeTrackerApp {
 
   // Time Formatting
   formatTime(totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const hours = Math.floor(totalMinutes / CONSTANTS.MINUTES_PER_HOUR);
+    const minutes = totalMinutes % CONSTANTS.MINUTES_PER_HOUR;
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
@@ -222,7 +227,7 @@ class TimeTrackerApp {
 
     this.showToast(
       `Added ${this.formatTime(
-        parsed.hours * 60 + parsed.minutes
+        parsed.hours * CONSTANTS.MINUTES_PER_HOUR + parsed.minutes
       )} for ${this.formatDate(dateStr)}`,
       "success"
     );
@@ -255,7 +260,7 @@ class TimeTrackerApp {
     setTimeout(() => {
       input.classList.remove("shake");
       input.style.borderColor = "";
-    }, 300);
+    }, CONSTANTS.VALIDATION_ERROR_ANIMATION_MS);
 
     this.showToast(message, "error");
   }
@@ -432,7 +437,9 @@ class TimeTrackerApp {
     });
 
     const monthMinutes = this.calculateTotalMinutes(monthEntries);
-    const monthEarnings = Math.round((monthMinutes / 60) * this.hourlyRate);
+    const monthEarnings = Math.round(
+      (monthMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+    );
 
     document.getElementById("thisMonthHours").textContent =
       this.formatTime(monthMinutes);
@@ -443,7 +450,7 @@ class TimeTrackerApp {
 
   calculateTotalMinutes(entries) {
     return entries.reduce((total, entry) => {
-      return total + entry.hours * 60 + entry.minutes;
+      return total + entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
     }, 0);
   }
 
@@ -469,8 +476,11 @@ class TimeTrackerApp {
 
     container.innerHTML = filteredEntries
       .map((entry) => {
-        const totalMinutes = entry.hours * 60 + entry.minutes;
-        const earnings = Math.round((totalMinutes / 60) * this.hourlyRate);
+        const totalMinutes =
+          entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
+        const earnings = Math.round(
+          (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+        );
 
         return `
                 <div class="time-entry">
@@ -540,7 +550,8 @@ class TimeTrackerApp {
         };
       }
 
-      const totalMinutes = entry.hours * 60 + entry.minutes;
+      const totalMinutes =
+        entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
       monthlyData[monthKey].totalMinutes += totalMinutes;
       monthlyData[monthKey].entryCount += 1;
       monthlyData[monthKey].entries.push(entry);
@@ -551,10 +562,14 @@ class TimeTrackerApp {
   }
 
   createMonthCard(data) {
-    const totalSalary = Math.round((data.totalMinutes / 60) * this.hourlyRate);
+    const totalSalary = Math.round(
+      (data.totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+    );
     const uniqueWorkDays = data.workDays.size;
     const avgHoursPerDay =
-      uniqueWorkDays > 0 ? data.totalMinutes / uniqueWorkDays / 60 : 0;
+      uniqueWorkDays > 0
+        ? data.totalMinutes / uniqueWorkDays / CONSTANTS.MINUTES_PER_HOUR
+        : 0;
     const avgSalaryPerDay =
       uniqueWorkDays > 0 ? totalSalary / uniqueWorkDays : 0;
 
@@ -625,7 +640,9 @@ class TimeTrackerApp {
 
   generateExportSummary() {
     const totalMinutes = this.calculateTotalMinutes(this.timeEntries);
-    const totalEarnings = Math.round((totalMinutes / 60) * this.hourlyRate);
+    const totalEarnings = Math.round(
+      (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+    );
     const uniqueDays = new Set(this.timeEntries.map((e) => e.date)).size;
 
     return {
@@ -633,7 +650,9 @@ class TimeTrackerApp {
       totalEarnings: totalEarnings,
       workDays: uniqueDays,
       avgHoursPerDay:
-        uniqueDays > 0 ? (totalMinutes / uniqueDays / 60).toFixed(1) : 0,
+        uniqueDays > 0
+          ? (totalMinutes / uniqueDays / CONSTANTS.MINUTES_PER_HOUR).toFixed(1)
+          : 0,
     };
   }
 
@@ -648,22 +667,35 @@ class TimeTrackerApp {
       warning: "fas fa-exclamation-triangle",
     };
 
-    toast.innerHTML = `
-            <i class="toast-icon ${icons[type]}"></i>
-            <span class="toast-message">${message}</span>
-            <button class="toast-close" onclick="this.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
+    const icon = document.createElement("i");
+    icon.className = `toast-icon ${icons[type]}`;
+
+    const messageSpan = document.createElement("span");
+    messageSpan.className = "toast-message";
+    messageSpan.textContent = message; // Use textContent to safely insert text
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "toast-close";
+    closeButton.onclick = function () {
+      this.parentElement.remove();
+    };
+
+    const closeIcon = document.createElement("i");
+    closeIcon.className = "fas fa-times";
+    closeButton.appendChild(closeIcon);
+
+    toast.appendChild(icon);
+    toast.appendChild(messageSpan);
+    toast.appendChild(closeButton);
 
     document.getElementById("toastContainer").appendChild(toast);
 
-    // Auto remove after 5 seconds
+    // Auto remove after timeout
     setTimeout(() => {
       if (toast.parentNode) {
         toast.remove();
       }
-    }, 5000);
+    }, CONSTANTS.TOAST_AUTO_DISMISS_MS);
   }
 
   // Utility Functions
@@ -671,7 +703,7 @@ class TimeTrackerApp {
     button.style.transform = "scale(0.95)";
     setTimeout(() => {
       button.style.transform = "";
-    }, 150);
+    }, CONSTANTS.BUTTON_ANIMATION_MS);
   }
 
   // Monthly View Toggle (placeholder for future enhancement)
