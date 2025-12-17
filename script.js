@@ -234,6 +234,22 @@ class TimeTrackerApp {
 
     // Animate the add button
     this.animateButton(document.querySelector(".btn-add"));
+
+    // Automatically advance to next date
+    this.advanceToNextDate();
+  }
+
+  // Advance to next date after adding entry
+  advanceToNextDate() {
+    const dateInput = document.getElementById("dateInput");
+    const currentDate = new Date(dateInput.value);
+
+    // Add one day
+    currentDate.setDate(currentDate.getDate() + 1);
+
+    // Format to YYYY-MM-DD
+    const nextDateStr = currentDate.toISOString().split("T")[0];
+    dateInput.value = nextDateStr;
   }
 
   // Validation
