@@ -108,7 +108,22 @@ class TimeTrackerApp {
         document.getElementById('dateInput').value = today;
     }
 
-    // Time Parsing - Improved with better pattern matching and validation
+    /**
+     * Time Parsing - Improved with better pattern matching and validation
+     * 
+     * Supported formats:
+     * - Hour and minute: "8h30m" or "8h 30m" (with single space)
+     * - Hours only: "8h"
+     * - Minutes only: "30m"
+     * - Colon format: "8:30"
+     * - Decimal hours: "8.5" (converts to 8h 30m)
+     * 
+     * Validation rules:
+     * - Hours: 0-24 (24 hours only allowed with 0 minutes)
+     * - Minutes: 0-59
+     * - Total time must be greater than zero
+     * - All values must be numeric
+     */
     parseTimeString(timeStr) {
         // Normalize input: trim and convert to lowercase
         const normalized = timeStr.trim().toLowerCase();
@@ -118,8 +133,8 @@ class TimeTrackerApp {
             return { hours: 0, minutes: 0, valid: false };
         }
 
-        // Pattern: 8h30m or 8h 30m
-        let match = normalized.match(/^(\d+)h\s*(\d+)m$/);
+        // Pattern: 8h30m or 8h 30m (single space)
+        let match = normalized.match(/^(\d+)h\s?(\d+)m$/);
         if (match) {
             const hours = parseInt(match[1]);
             const minutes = parseInt(match[2]);
@@ -162,13 +177,13 @@ class TimeTrackerApp {
 
     // Validate time values are within reasonable bounds
     validateTimeValues(hours, minutes) {
-        // Check if values are valid numbers
-        if (isNaN(hours) || isNaN(minutes)) {
+        // Check reasonable bounds (0-24 hours, 0-59 minutes)
+        if (hours < 0 || hours > 24 || minutes < 0 || minutes > 59) {
             return { hours: 0, minutes: 0, valid: false };
         }
 
-        // Check reasonable bounds (0-24 hours, 0-59 minutes)
-        if (hours < 0 || hours > 24 || minutes < 0 || minutes > 59) {
+        // Check if 24 hours is combined with any minutes (invalid)
+        if (hours === 24 && minutes > 0) {
             return { hours: 0, minutes: 0, valid: false };
         }
 
@@ -223,7 +238,7 @@ class TimeTrackerApp {
         const parsed = this.parseTimeString(timeStr);
 
         if (!parsed.valid) {
-            this.showValidationError(timeInput, 'Invalid time format. Try: 8h30m, 8h, 30m, 8:30');
+            this.showValidationError(timeInput, 'Invalid time format. Try: 8h30m, 8h 30m, 8h, 30m, 8:30, 8.5');
             return;
         }
 
