@@ -2,594 +2,591 @@ import { CONSTANTS } from "./constants.js";
 
 // Application State
 class TimeTrackerApp {
-  constructor() {
-    this.timeEntries = this.loadFromStorage("timeEntries", []);
-    this.hourlyRate = this.loadFromStorage(
-      "hourlyRate",
-      CONSTANTS.DEFAULT_HOURLY_RATE
-    );
-    this.currentFilter = "all";
-    this.theme = this.loadFromStorage("theme", "light");
+    constructor() {
+        this.timeEntries = this.loadFromStorage("timeEntries", []);
+        this.hourlyRate = this.loadFromStorage(
+            "hourlyRate",
+            CONSTANTS.DEFAULT_HOURLY_RATE
+        );
+        this.currentFilter = "all";
+        this.theme = this.loadFromStorage("theme", "light");
 
-    this.init();
-  }
-
-  // Initialize the application
-  init() {
-    this.showLoading();
-    this.setupEventListeners();
-    this.applyTheme();
-    this.updateUI();
-    this.populateMonthFilter();
-
-    // Hide loading screen after initialization
-    setTimeout(() => {
-      this.hideLoading();
-    }, CONSTANTS.LOADING_SCREEN_DELAY_MS);
-  }
-
-  // Loading Screen Management
-  showLoading() {
-    document.getElementById("loadingScreen").style.display = "flex";
-  }
-
-  hideLoading() {
-    const loadingScreen = document.getElementById("loadingScreen");
-    const appContainer = document.getElementById("appContainer");
-
-    loadingScreen.classList.add("hidden");
-    appContainer.classList.add("loaded");
-
-    setTimeout(() => {
-      loadingScreen.style.display = "none";
-    }, CONSTANTS.LOADING_SCREEN_FADE_MS);
-  }
-
-  // Local Storage Management
-  loadFromStorage(key, defaultValue) {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultValue;
-    } catch (error) {
-      console.warn(`Failed to load ${key} from storage:`, error);
-      return defaultValue;
+        this.init();
     }
-  }
 
-  saveToStorage(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.warn(`Failed to save ${key} to storage:`, error);
-      this.showToast("Storage error. Data may not persist.", "error");
+    // Initialize the application
+    init() {
+        this.showLoading();
+        this.setupEventListeners();
+        this.applyTheme();
+        this.updateUI();
+        this.populateMonthFilter();
+
+        // Hide loading screen after initialization
+        setTimeout(() => {
+            this.hideLoading();
+        }, CONSTANTS.LOADING_SCREEN_DELAY_MS);
     }
-  }
 
-  // Event Listeners Setup
-  setupEventListeners() {
-    // Theme toggle
-    document.getElementById("themeToggle").addEventListener("click", () => {
-      this.toggleTheme();
-    });
+    // Loading Screen Management
+    showLoading() {
+        document.getElementById("loadingScreen").style.display = "flex";
+    }
 
-    // Export functionality
-    document.getElementById("exportBtn").addEventListener("click", () => {
-      this.exportData();
-    });
+    hideLoading() {
+        const loadingScreen = document.getElementById("loadingScreen");
+        const appContainer = document.getElementById("appContainer");
 
-    // Form submissions
-    document.getElementById("timeInput").addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        this.addTimeEntry();
-      }
-    });
+        loadingScreen.classList.add("hidden");
+        appContainer.classList.add("loaded");
 
-    // Date input default
-    this.setDefaultDate();
+        setTimeout(() => {
+            loadingScreen.style.display = "none";
+        }, CONSTANTS.LOADING_SCREEN_FADE_MS);
+    }
 
-    // Auto-save hourly rate on blur
-    document.getElementById("hourlyRate").addEventListener("blur", () => {
-      this.updateHourlyRate();
-    });
-  }
-
-  // Theme Management
-  toggleTheme() {
-    this.theme = this.theme === "light" ? "dark" : "light";
-    this.applyTheme();
-    this.saveToStorage("theme", this.theme);
-    this.showToast(`Switched to ${this.theme} theme`, "success");
-  }
-
-  applyTheme() {
-    document.documentElement.setAttribute("data-theme", this.theme);
-    const themeIcon = document.querySelector("#themeToggle i");
-    themeIcon.className = this.theme === "light" ? "fas fa-moon" : "fas fa-sun";
-  }
-
-  // Date Management
-  setDefaultDate() {
-    const today = new Date().toISOString().split("T")[0];
-    document.getElementById("dateInput").value = today;
-  }
-
-  // Time Parsing
-  parseTimeString(timeStr) {
-    const patterns = [
-      { regex: /^(\d+)h(\d+)m$/, type: "hm" },
-      { regex: /^(\d+)h$/, type: "h" },
-      { regex: /^(\d+)m$/, type: "m" },
-      { regex: /^(\d+):(\d+)$/, type: "colon" },
-      { regex: /^(\d+)\.(\d+)$/, type: "decimal" },
-    ];
-
-    for (const { regex, type } of patterns) {
-      const match = timeStr.match(regex);
-      if (match) {
-        switch (type) {
-          case "hm":
-            return {
-              hours: parseInt(match[1]),
-              minutes: parseInt(match[2]),
-              valid: true,
-            };
-          case "h":
-            return { hours: parseInt(match[1]), minutes: 0, valid: true };
-          case "m":
-            return { hours: 0, minutes: parseInt(match[1]), valid: true };
-          case "colon":
-            return {
-              hours: parseInt(match[1]),
-              minutes: parseInt(match[2]),
-              valid: true,
-            };
-          case "decimal":
-            const hours = parseInt(match[1]);
-            const minutes = Math.round(
-              parseFloat(`0.${match[2]}`) * CONSTANTS.MINUTES_PER_HOUR
-            );
-            return { hours, minutes, valid: true };
+    // Local Storage Management
+    loadFromStorage(key, defaultValue) {
+        try {
+            const stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) : defaultValue;
+        } catch (error) {
+            console.warn(`Failed to load ${key} from storage:`, error);
+            return defaultValue;
         }
-      }
     }
 
-    return { hours: 0, minutes: 0, valid: false };
-  }
-
-  // Time Formatting
-  formatTime(totalMinutes) {
-    const hours = Math.floor(totalMinutes / CONSTANTS.MINUTES_PER_HOUR);
-    const minutes = totalMinutes % CONSTANTS.MINUTES_PER_HOUR;
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
-
-  // Date Formatting
-  formatDate(dateStr) {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString("en-IN", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year:
-          date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
-      });
+    saveToStorage(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.warn(`Failed to save ${key} to storage:`, error);
+            this.showToast("Storage error. Data may not persist.", "error");
+        }
     }
-  }
 
-  // Add Time Entry
-  addTimeEntry() {
-    const timeInput = document.getElementById("timeInput");
-    const dateInput = document.getElementById("dateInput");
-    const timeStr = timeInput.value.trim();
-    const dateStr = dateInput.value;
+    // Event Listeners Setup
+    setupEventListeners() {
+        // Theme toggle
+        document.getElementById("themeToggle").addEventListener("click", () => {
+            this.toggleTheme();
+        });
+
+        // Export functionality
+        document.getElementById("exportBtn").addEventListener("click", () => {
+            this.exportData();
+        });
+
+        // Form submissions
+        document.getElementById("timeInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                this.addTimeEntry();
+            }
+        });
+
+        // Date input default
+        this.setDefaultDate();
+
+        // Auto-save hourly rate on blur
+        document.getElementById("hourlyRate").addEventListener("blur", () => {
+            this.updateHourlyRate();
+        });
+    }
+
+    // Theme Management
+    toggleTheme() {
+        this.theme = this.theme === "light" ? "dark" : "light";
+        this.applyTheme();
+        this.saveToStorage("theme", this.theme);
+        this.showToast(`Switched to ${this.theme} theme`, "success");
+    }
+
+    applyTheme() {
+        document.documentElement.setAttribute("data-theme", this.theme);
+        const themeIcon = document.querySelector("#themeToggle i");
+        themeIcon.className = this.theme === "light" ? "fas fa-moon" : "fas fa-sun";
+    }
+
+    // Date Management
+    setDefaultDate() {
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("dateInput").value = today;
+    }
+
+    // Time Parsing
+    parseTimeString(timeStr) {
+        const patterns = [
+            { regex: /^(\d+)h(\d+)m$/, type: "hm" },
+            { regex: /^(\d+)h$/, type: "h" },
+            { regex: /^(\d+)m$/, type: "m" },
+            { regex: /^(\d+):(\d+)$/, type: "colon" },
+            { regex: /^(\d+)\.(\d+)$/, type: "decimal" },
+        ];
+
+        for (const { regex, type } of patterns) {
+            const match = timeStr.match(regex);
+            if (match) {
+                switch (type) {
+                    case "hm":
+                        return {
+                            hours: parseInt(match[1]),
+                            minutes: parseInt(match[2]),
+                            valid: true,
+                        };
+                    case "h":
+                        return { hours: parseInt(match[1]), minutes: 0, valid: true };
+                    case "m":
+                        return { hours: 0, minutes: parseInt(match[1]), valid: true };
+                    case "colon":
+                        return {
+                            hours: parseInt(match[1]),
+                            minutes: parseInt(match[2]),
+                            valid: true,
+                        };
+                    case "decimal":
+                        const hours = parseInt(match[1]);
+                        const minutes = Math.round(
+                            parseFloat(`0.${match[2]}`) * CONSTANTS.MINUTES_PER_HOUR
+                        );
+                        return { hours, minutes, valid: true };
+                }
+            }
+        }
+
+        return { hours: 0, minutes: 0, valid: false };
+    }
+
+    // Time Formatting
+    formatTime(totalMinutes) {
+        const hours = Math.floor(totalMinutes / CONSTANTS.MINUTES_PER_HOUR);
+        const minutes = totalMinutes % CONSTANTS.MINUTES_PER_HOUR;
+        return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+
+    // Date Formatting
+    formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+            return "Today";
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return "Yesterday";
+        } else {
+            return date.toLocaleDateString("en-IN", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                year:
+                    date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+            });
+        }
+    }
+
+    // Add Time Entry
+    addTimeEntry() {
+        const timeInput = document.getElementById("timeInput");
+        const dateInput = document.getElementById("dateInput");
+        const timeStr = timeInput.value.trim();
+        const dateStr = dateInput.value;
+
+        // Validation
+        if (!this.validateEntry(timeStr, dateStr, timeInput, dateInput)) {
+            return;
+        }
+
+        const parsed = this.parseTimeString(timeStr);
+
+        if (!parsed.valid) {
+            this.showValidationError(
+                timeInput,
+                "Invalid time format. Try: 8h30m, 8h, 30m, 8:30"
+            );
+            return;
+        }
+
+        // Create entry
+        const entry = {
+            id: Date.now(),
+            date: dateStr,
+            original: timeStr,
+            hours: parsed.hours,
+            minutes: parsed.minutes,
+            timestamp: new Date().toISOString(),
+        };
+
+        this.timeEntries.unshift(entry); // Add to beginning for recent-first order
+        this.saveToStorage("timeEntries", this.timeEntries);
+
+        // Update UI
+        timeInput.value = "";
+        this.updateUI();
+        this.populateMonthFilter();
+
+        this.showToast(
+            `Added ${this.formatTime(
+                parsed.hours * CONSTANTS.MINUTES_PER_HOUR + parsed.minutes
+            )} for ${this.formatDate(dateStr)}`,
+            "success"
+        );
+
+        // Animate the add button
+        this.animateButton(document.querySelector(".btn-add"));
+
+        // Automatically advance to next date
+        this.advanceToNextDate();
+    }
+
+    // Advance to next date after adding entry
+    advanceToNextDate() {
+        const dateInput = document.getElementById("dateInput");
+        const currentDate = new Date(dateInput.value);
+
+        // Add one day
+        currentDate.setDate(currentDate.getDate() + 1);
+
+        // Format to YYYY-MM-DD
+        const nextDateStr = currentDate.toISOString().split("T")[0];
+        dateInput.value = nextDateStr;
+    }
 
     // Validation
-    if (!this.validateEntry(timeStr, dateStr, timeInput, dateInput)) {
-      return;
+    validateEntry(timeStr, dateStr, timeInput, dateInput) {
+        let isValid = true;
+
+        if (!timeStr) {
+            this.showValidationError(timeInput, "Time entry is required");
+            isValid = false;
+        }
+
+        if (!dateStr) {
+            this.showValidationError(dateInput, "Date is required");
+            isValid = false;
+        }
+
+        return isValid;
     }
 
-    const parsed = this.parseTimeString(timeStr);
+    showValidationError(input, message) {
+        input.classList.add("shake");
+        input.style.borderColor = "var(--danger-color)";
 
-    if (!parsed.valid) {
-      this.showValidationError(
-        timeInput,
-        "Invalid time format. Try: 8h30m, 8h, 30m, 8:30"
-      );
-      return;
+        setTimeout(() => {
+            input.classList.remove("shake");
+            input.style.borderColor = "";
+        }, CONSTANTS.VALIDATION_ERROR_ANIMATION_MS);
+
+        this.showToast(message, "error");
     }
 
-    // Create entry
-    const entry = {
-      id: Date.now(),
-      date: dateStr,
-      original: timeStr,
-      hours: parsed.hours,
-      minutes: parsed.minutes,
-      timestamp: new Date().toISOString(),
-    };
+    // Remove Time Entry
+    removeTimeEntry(id) {
+        const entry = this.timeEntries.find((e) => e.id === id);
+        if (!entry) return;
 
-    this.timeEntries.unshift(entry); // Add to beginning for recent-first order
-    this.saveToStorage("timeEntries", this.timeEntries);
-
-    // Update UI
-    timeInput.value = "";
-    this.updateUI();
-    this.populateMonthFilter();
-
-    this.showToast(
-      `Added ${this.formatTime(
-        parsed.hours * CONSTANTS.MINUTES_PER_HOUR + parsed.minutes
-      )} for ${this.formatDate(dateStr)}`,
-      "success"
-    );
-
-    // Animate the add button
-    this.animateButton(document.querySelector(".btn-add"));
-
-    // Automatically advance to next date
-    this.advanceToNextDate();
-  }
-
-  // Advance to next date after adding entry
-  advanceToNextDate() {
-    const dateInput = document.getElementById("dateInput");
-    const currentDate = new Date(dateInput.value);
-
-    // Add one day
-    currentDate.setDate(currentDate.getDate() + 1);
-
-    // Format to YYYY-MM-DD
-    const nextDateStr = currentDate.toISOString().split("T")[0];
-    dateInput.value = nextDateStr;
-  }
-
-  // Validation
-  validateEntry(timeStr, dateStr, timeInput, dateInput) {
-    let isValid = true;
-
-    if (!timeStr) {
-      this.showValidationError(timeInput, "Time entry is required");
-      isValid = false;
+        if (
+            confirm(`Delete ${entry.original} from ${this.formatDate(entry.date)}?`)
+        ) {
+            this.timeEntries = this.timeEntries.filter((e) => e.id !== id);
+            this.saveToStorage("timeEntries", this.timeEntries);
+            this.updateUI();
+            this.populateMonthFilter();
+            this.showToast("Entry deleted", "success");
+        }
     }
 
-    if (!dateStr) {
-      this.showValidationError(dateInput, "Date is required");
-      isValid = false;
+    // Update Hourly Rate
+    updateHourlyRate() {
+        const newRate = parseFloat(document.getElementById("hourlyRate").value);
+
+        if (isNaN(newRate) || newRate <= 0) {
+            this.showToast("Please enter a valid hourly rate", "error");
+            document.getElementById("hourlyRate").value = this.hourlyRate;
+            return;
+        }
+
+        if (newRate !== this.hourlyRate) {
+            this.hourlyRate = newRate;
+            this.saveToStorage("hourlyRate", this.hourlyRate);
+            this.updateUI();
+            this.showToast(`Hourly rate updated to ${newRate}`, "success");
+        }
     }
 
-    return isValid;
-  }
+    // Clear All Entries
+    clearAllEntries() {
+        if (this.timeEntries.length === 0) {
+            this.showToast("No entries to clear", "warning");
+            return;
+        }
 
-  showValidationError(input, message) {
-    input.classList.add("shake");
-    input.style.borderColor = "var(--danger-color)";
+        const confirmMessage = `Are you sure you want to delete all ${this.timeEntries.length} entries? This cannot be undone.`;
 
-    setTimeout(() => {
-      input.classList.remove("shake");
-      input.style.borderColor = "";
-    }, CONSTANTS.VALIDATION_ERROR_ANIMATION_MS);
-
-    this.showToast(message, "error");
-  }
-
-  // Remove Time Entry
-  removeTimeEntry(id) {
-    const entry = this.timeEntries.find((e) => e.id === id);
-    if (!entry) return;
-
-    if (
-      confirm(`Delete ${entry.original} from ${this.formatDate(entry.date)}?`)
-    ) {
-      this.timeEntries = this.timeEntries.filter((e) => e.id !== id);
-      this.saveToStorage("timeEntries", this.timeEntries);
-      this.updateUI();
-      this.populateMonthFilter();
-      this.showToast("Entry deleted", "success");
-    }
-  }
-
-  // Update Hourly Rate
-  updateHourlyRate() {
-    const newRate = parseFloat(document.getElementById("hourlyRate").value);
-
-    if (isNaN(newRate) || newRate <= 0) {
-      this.showToast("Please enter a valid hourly rate", "error");
-      document.getElementById("hourlyRate").value = this.hourlyRate;
-      return;
+        if (confirm(confirmMessage)) {
+            this.timeEntries = [];
+            this.saveToStorage("timeEntries", this.timeEntries);
+            this.updateUI();
+            this.populateMonthFilter();
+            this.showToast("All entries cleared", "success");
+        }
     }
 
-    if (newRate !== this.hourlyRate) {
-      this.hourlyRate = newRate;
-      this.saveToStorage("hourlyRate", this.hourlyRate);
-      this.updateUI();
-      this.showToast(`Hourly rate updated to ${newRate}`, "success");
-    }
-  }
+    // Quick Add Functions
+    quickAdd(type) {
+        const dateInput = document.getElementById("dateInput");
+        const today = new Date().toISOString().split("T")[0];
 
-  // Clear All Entries
-  clearAllEntries() {
-    if (this.timeEntries.length === 0) {
-      this.showToast("No entries to clear", "warning");
-      return;
+        switch (type) {
+            case "today":
+                dateInput.value = today;
+                document.getElementById("timeInput").focus();
+                break;
+        }
     }
 
-    const confirmMessage = `Are you sure you want to delete all ${this.timeEntries.length} entries? This cannot be undone.`;
+    // Next Date Function
+    nextDate() {
+        const dateInput = document.getElementById("dateInput");
+        const currentDate = dateInput.value
+            ? new Date(dateInput.value)
+            : new Date();
 
-    if (confirm(confirmMessage)) {
-      this.timeEntries = [];
-      this.saveToStorage("timeEntries", this.timeEntries);
-      this.updateUI();
-      this.populateMonthFilter();
-      this.showToast("All entries cleared", "success");
-    }
-  }
+        // Add one day
+        currentDate.setDate(currentDate.getDate() + 1);
 
-  // Quick Add Functions
-  quickAdd(type) {
-    const dateInput = document.getElementById("dateInput");
-    const today = new Date().toISOString().split("T")[0];
+        // Format to YYYY-MM-DD
+        const nextDateStr = currentDate.toISOString().split("T")[0];
+        dateInput.value = nextDateStr;
 
-    switch (type) {
-      case "today":
-        dateInput.value = today;
+        // Focus on time input for convenience
         document.getElementById("timeInput").focus();
-        break;
-    }
-  }
 
-  // Next Date Function
-  nextDate() {
-    const dateInput = document.getElementById("dateInput");
-    const currentDate = dateInput.value
-      ? new Date(dateInput.value)
-      : new Date();
-
-    // Add one day
-    currentDate.setDate(currentDate.getDate() + 1);
-
-    // Format to YYYY-MM-DD
-    const nextDateStr = currentDate.toISOString().split("T")[0];
-    dateInput.value = nextDateStr;
-
-    // Focus on time input for convenience
-    document.getElementById("timeInput").focus();
-
-    this.showToast(`Date set to ${this.formatDate(nextDateStr)}`, "success");
-  }
-
-  // Filter Entries
-  filterEntries() {
-    const filterValue = document.getElementById("filterMonth").value;
-    this.currentFilter = filterValue;
-    this.renderTimeEntries();
-  }
-
-  getFilteredEntries() {
-    if (this.currentFilter === "all") {
-      return this.timeEntries;
+        this.showToast(`Date set to ${this.formatDate(nextDateStr)}`, "success");
     }
 
-    return this.timeEntries.filter((entry) => {
-      const entryDate = new Date(entry.date);
-      const entryMonth = `${entryDate.getFullYear()}-${String(
-        entryDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-      return entryMonth === this.currentFilter;
-    });
-  }
-
-  // Populate Month Filter
-  populateMonthFilter() {
-    const filterSelect = document.getElementById("filterMonth");
-    const months = new Set();
-
-    this.timeEntries.forEach((entry) => {
-      const date = new Date(entry.date);
-      const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-      months.add(monthKey);
-    });
-
-    const sortedMonths = Array.from(months).sort().reverse();
-
-    // Clear existing options (except "All Time")
-    while (filterSelect.children.length > 1) {
-      filterSelect.removeChild(filterSelect.lastChild);
+    // Filter Entries
+    filterEntries() {
+        const filterValue = document.getElementById("filterMonth").value;
+        this.currentFilter = filterValue;
+        this.renderTimeEntries();
     }
 
-    sortedMonths.forEach((monthKey) => {
-      const date = new Date(monthKey + "-01");
-      const monthName = date.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "long",
-      });
+    getFilteredEntries() {
+        if (this.currentFilter === "all") {
+            return this.timeEntries;
+        }
 
-      const option = document.createElement("option");
-      option.value = monthKey;
-      option.textContent = monthName;
-      filterSelect.appendChild(option);
-    });
-  }
+        return this.timeEntries.filter((entry) => {
+            const entryDate = new Date(entry.date);
+            const entryMonth = `${entryDate.getFullYear()}-${String(
+                entryDate.getMonth() + 1
+            ).padStart(2, "0")}`;
+            return entryMonth === this.currentFilter;
+        });
+    }
 
-  // UI Update Functions
-  updateUI() {
-    this.updateDashboardStats();
-    this.renderTimeEntries();
-    this.renderMonthlyBreakdown();
-    document.getElementById("displayRate").textContent = `${this.hourlyRate}`;
-  }
+    // Populate Month Filter
+    populateMonthFilter() {
+        const filterSelect = document.getElementById("filterMonth");
+        const months = new Set();
 
-  updateDashboardStats() {
-    const today = new Date().toISOString().split("T")[0];
-    const currentMonth = `${new Date().getFullYear()}-${String(
-      new Date().getMonth() + 1
-    ).padStart(2, "0")}`;
+        this.timeEntries.forEach((entry) => {
+            const date = new Date(entry.date);
+            const monthKey = `${date.getFullYear()}-${String(
+                date.getMonth() + 1
+            ).padStart(2, "0")}`;
+            months.add(monthKey);
+        });
 
-    // Today's hours
-    const todayEntries = this.timeEntries.filter(
-      (entry) => entry.date === today
-    );
-    const todayMinutes = this.calculateTotalMinutes(todayEntries);
-    document.getElementById("todayHours").textContent =
-      this.formatTime(todayMinutes);
+        const sortedMonths = Array.from(months).sort().reverse();
 
-    // This month's data
-    const monthEntries = this.timeEntries.filter((entry) => {
-      const entryDate = new Date(entry.date);
-      const entryMonth = `${entryDate.getFullYear()}-${String(
-        entryDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-      return entryMonth === currentMonth;
-    });
+        // Clear existing options (except "All Time")
+        while (filterSelect.children.length > 1) {
+            filterSelect.removeChild(filterSelect.lastChild);
+        }
 
-    const monthMinutes = this.calculateTotalMinutes(monthEntries);
-    const monthEarnings = Math.round(
-      (monthMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
-    );
+        sortedMonths.forEach((monthKey) => {
+            const date = new Date(monthKey + "-01");
+            const monthName = date.toLocaleDateString("en-IN", {
+                year: "numeric",
+                month: "long",
+            });
 
-    document.getElementById("thisMonthHours").textContent =
-      this.formatTime(monthMinutes);
-    document.getElementById(
-      "monthlyEarnings"
-    ).textContent = `${monthEarnings.toLocaleString()}`;
-  }
+            const option = document.createElement("option");
+            option.value = monthKey;
+            option.textContent = monthName;
+            filterSelect.appendChild(option);
+        });
+    }
 
-  calculateTotalMinutes(entries) {
-    return entries.reduce((total, entry) => {
-      return total + entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
-    }, 0);
-  }
+    // UI Update Functions
+    updateUI() {
+        this.updateDashboardStats();
+        this.renderTimeEntries();
+        this.renderMonthlyBreakdown();
+        document.getElementById("displayRate").textContent = `${this.hourlyRate}`;
+    }
 
-  // Render Time Entries
-  renderTimeEntries() {
-    const container = document.getElementById("timeEntries");
-    const filteredEntries = this.getFilteredEntries();
+    updateDashboardStats() {
+        const today = new Date().toISOString().split("T")[0];
+        const currentMonth = `${new Date().getFullYear()}-${String(
+            new Date().getMonth() + 1
+        ).padStart(2, "0")}`;
 
-    if (filteredEntries.length === 0) {
-      container.innerHTML = `
+        // Today's hours
+        const todayEntries = this.timeEntries.filter(
+            (entry) => entry.date === today
+        );
+        const todayMinutes = this.calculateTotalMinutes(todayEntries);
+        document.getElementById("todayHours").textContent =
+            this.formatTime(todayMinutes);
+
+        // This month's data
+        const monthEntries = this.timeEntries.filter((entry) => {
+            const entryDate = new Date(entry.date);
+            const entryMonth = `${entryDate.getFullYear()}-${String(
+                entryDate.getMonth() + 1
+            ).padStart(2, "0")}`;
+            return entryMonth === currentMonth;
+        });
+
+        const monthMinutes = this.calculateTotalMinutes(monthEntries);
+        const monthEarnings = Math.round(
+            (monthMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+        );
+
+        document.getElementById("thisMonthHours").textContent =
+            this.formatTime(monthMinutes);
+        document.getElementById(
+            "monthlyEarnings"
+        ).textContent = `${monthEarnings.toLocaleString()}`;
+    }
+
+    calculateTotalMinutes(entries) {
+        return entries.reduce((total, entry) => {
+            return total + entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
+        }, 0);
+    }
+
+    // Render Time Entries
+    renderTimeEntries() {
+        const container = document.getElementById("timeEntries");
+        const filteredEntries = this.getFilteredEntries();
+
+        if (filteredEntries.length === 0) {
+            container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-clock"></i>
                     <h3>No time entries found</h3>
-                    <p>${
-                      this.currentFilter === "all"
-                        ? "Add your first entry above to start tracking!"
-                        : "No entries for the selected month."
-                    }</p>
+                    <p>${this.currentFilter === "all"
+                    ? "Add your first entry above to start tracking!"
+                    : "No entries for the selected month."
+                }</p>
                 </div>
             `;
-      return;
-    }
+            return;
+        }
 
-    container.innerHTML = filteredEntries
-      .map((entry) => {
-        const totalMinutes =
-          entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
-        const earnings = Math.round(
-          (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
-        );
+        container.innerHTML = filteredEntries
+            .map((entry) => {
+                const totalMinutes =
+                    entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
+                const earnings = Math.round(
+                    (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+                );
 
-        return `
+                return `
                 <div class="time-entry">
                     <div class="entry-info">
                         <div class="entry-date">${this.formatDate(
-                          entry.date
-                        )}</div>
-                        <div class="entry-time">${
-                          entry.original
-                        } → ${this.formatTime(totalMinutes)} → ${earnings}</div>
+                    entry.date
+                )}</div>
+                        <div class="entry-time">${entry.original
+                    } → ${this.formatTime(totalMinutes)} → ${earnings}</div>
                     </div>
                     <div class="entry-actions">
-                        <button class="delete-btn" onclick="app.removeTimeEntry(${
-                          entry.id
-                        })" title="Delete entry">
+                        <button class="delete-btn" onclick="app.removeTimeEntry(${entry.id
+                    })" title="Delete entry">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
             `;
-      })
-      .join("");
-  }
-
-  // Render Monthly Breakdown
-  renderMonthlyBreakdown() {
-    const container = document.getElementById("monthlyData");
-    const section = document.getElementById("monthlySection");
-
-    if (this.timeEntries.length === 0) {
-      section.style.display = "none";
-      return;
+            })
+            .join("");
     }
 
-    const monthlyData = this.groupEntriesByMonth();
-    const sortedMonths = Object.keys(monthlyData).sort().reverse();
+    // Render Monthly Breakdown
+    renderMonthlyBreakdown() {
+        const container = document.getElementById("monthlyData");
+        const section = document.getElementById("monthlySection");
 
-    section.style.display = "block";
-    container.innerHTML = sortedMonths
-      .map((monthKey) => {
-        const data = monthlyData[monthKey];
-        return this.createMonthCard(data);
-      })
-      .join("");
-  }
+        if (this.timeEntries.length === 0) {
+            section.style.display = "none";
+            return;
+        }
 
-  groupEntriesByMonth() {
-    const monthlyData = {};
+        const monthlyData = this.groupEntriesByMonth();
+        const sortedMonths = Object.keys(monthlyData).sort().reverse();
 
-    this.timeEntries.forEach((entry) => {
-      const date = new Date(entry.date);
-      const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-      const monthName = date.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "long",
-      });
+        section.style.display = "block";
+        container.innerHTML = sortedMonths
+            .map((monthKey) => {
+                const data = monthlyData[monthKey];
+                return this.createMonthCard(data);
+            })
+            .join("");
+    }
 
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = {
-          name: monthName,
-          totalMinutes: 0,
-          entryCount: 0,
-          entries: [],
-          workDays: new Set(),
-        };
-      }
+    groupEntriesByMonth() {
+        const monthlyData = {};
 
-      const totalMinutes =
-        entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
-      monthlyData[monthKey].totalMinutes += totalMinutes;
-      monthlyData[monthKey].entryCount += 1;
-      monthlyData[monthKey].entries.push(entry);
-      monthlyData[monthKey].workDays.add(entry.date);
-    });
+        this.timeEntries.forEach((entry) => {
+            const date = new Date(entry.date);
+            const monthKey = `${date.getFullYear()}-${String(
+                date.getMonth() + 1
+            ).padStart(2, "0")}`;
+            const monthName = date.toLocaleDateString("en-IN", {
+                year: "numeric",
+                month: "long",
+            });
 
-    return monthlyData;
-  }
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    name: monthName,
+                    totalMinutes: 0,
+                    entryCount: 0,
+                    entries: [],
+                    workDays: new Set(),
+                };
+            }
 
-  createMonthCard(data) {
-    const totalSalary = Math.round(
-      (data.totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
-    );
-    const uniqueWorkDays = data.workDays.size;
-    const avgHoursPerDay =
-      uniqueWorkDays > 0
-        ? data.totalMinutes / uniqueWorkDays / CONSTANTS.MINUTES_PER_HOUR
-        : 0;
-    const avgSalaryPerDay =
-      uniqueWorkDays > 0 ? totalSalary / uniqueWorkDays : 0;
+            const totalMinutes =
+                entry.hours * CONSTANTS.MINUTES_PER_HOUR + entry.minutes;
+            monthlyData[monthKey].totalMinutes += totalMinutes;
+            monthlyData[monthKey].entryCount += 1;
+            monthlyData[monthKey].entries.push(entry);
+            monthlyData[monthKey].workDays.add(entry.date);
+        });
 
-    return `
+        return monthlyData;
+    }
+
+    createMonthCard(data) {
+        const totalSalary = Math.round(
+            (data.totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+        );
+        const uniqueWorkDays = data.workDays.size;
+        const avgHoursPerDay =
+            uniqueWorkDays > 0
+                ? data.totalMinutes / uniqueWorkDays / CONSTANTS.MINUTES_PER_HOUR
+                : 0;
+        const avgSalaryPerDay =
+            uniqueWorkDays > 0 ? totalSalary / uniqueWorkDays : 0;
+
+        return `
             <div class="month-card">
                 <div class="month-header">
                     <div class="month-title">${data.name}</div>
@@ -598,8 +595,8 @@ class TimeTrackerApp {
                 <div class="month-stats">
                     <div class="stat-item">
                         <span class="stat-value">${this.formatTime(
-                          data.totalMinutes
-                        )}</span>
+            data.totalMinutes
+        )}</span>
                         <span>Total Hours</span>
                     </div>
                     <div class="stat-item">
@@ -608,124 +605,123 @@ class TimeTrackerApp {
                     </div>
                     <div class="stat-item">
                         <span class="stat-value">${avgHoursPerDay.toFixed(
-                          1
-                        )}h</span>
+            1
+        )}h</span>
                         <span>Avg/Day</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-value">${Math.round(
-                          avgSalaryPerDay
-                        ).toLocaleString()}</span>
+            avgSalaryPerDay
+        ).toLocaleString()}</span>
                         <span>Avg Salary/Day</span>
                     </div>
                 </div>
             </div>
         `;
-  }
-
-  // Export Data
-  exportData() {
-    if (this.timeEntries.length === 0) {
-      this.showToast("No data to export", "warning");
-      return;
     }
 
-    const exportData = {
-      entries: this.timeEntries,
-      hourlyRate: this.hourlyRate,
-      exportDate: new Date().toISOString(),
-      totalEntries: this.timeEntries.length,
-      summary: this.generateExportSummary(),
-    };
+    // Export Data
+    exportData() {
+        if (this.timeEntries.length === 0) {
+            this.showToast("No data to export", "warning");
+            return;
+        }
 
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataUri =
-      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+        const exportData = {
+            entries: this.timeEntries,
+            hourlyRate: this.hourlyRate,
+            exportDate: new Date().toISOString(),
+            totalEntries: this.timeEntries.length,
+            summary: this.generateExportSummary(),
+        };
 
-    const exportFileDefaultName = `timetracker-export-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataUri =
+            "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const linkElement = document.createElement("a");
-    linkElement.setAttribute("href", dataUri);
-    linkElement.setAttribute("download", exportFileDefaultName);
-    linkElement.click();
+        const exportFileDefaultName = `timetracker-export-${new Date().toISOString().split("T")[0]
+            }.json`;
 
-    this.showToast("Data exported successfully", "success");
-  }
+        const linkElement = document.createElement("a");
+        linkElement.setAttribute("href", dataUri);
+        linkElement.setAttribute("download", exportFileDefaultName);
+        linkElement.click();
 
-  generateExportSummary() {
-    const totalMinutes = this.calculateTotalMinutes(this.timeEntries);
-    const totalEarnings = Math.round(
-      (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
-    );
-    const uniqueDays = new Set(this.timeEntries.map((e) => e.date)).size;
+        this.showToast("Data exported successfully", "success");
+    }
 
-    return {
-      totalHours: this.formatTime(totalMinutes),
-      totalEarnings: totalEarnings,
-      workDays: uniqueDays,
-      avgHoursPerDay:
-        uniqueDays > 0
-          ? (totalMinutes / uniqueDays / CONSTANTS.MINUTES_PER_HOUR).toFixed(1)
-          : 0,
-    };
-  }
+    generateExportSummary() {
+        const totalMinutes = this.calculateTotalMinutes(this.timeEntries);
+        const totalEarnings = Math.round(
+            (totalMinutes / CONSTANTS.MINUTES_PER_HOUR) * this.hourlyRate
+        );
+        const uniqueDays = new Set(this.timeEntries.map((e) => e.date)).size;
 
-  // Toast Notifications
-  showToast(message, type = "success") {
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
+        return {
+            totalHours: this.formatTime(totalMinutes),
+            totalEarnings: totalEarnings,
+            workDays: uniqueDays,
+            avgHoursPerDay:
+                uniqueDays > 0
+                    ? (totalMinutes / uniqueDays / CONSTANTS.MINUTES_PER_HOUR).toFixed(1)
+                    : 0,
+        };
+    }
 
-    const icons = {
-      success: "fas fa-check-circle",
-      error: "fas fa-exclamation-circle",
-      warning: "fas fa-exclamation-triangle",
-    };
+    // Toast Notifications
+    showToast(message, type = "success") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
 
-    const icon = document.createElement("i");
-    icon.className = `toast-icon ${icons[type]}`;
+        const icons = {
+            success: "fas fa-check-circle",
+            error: "fas fa-exclamation-circle",
+            warning: "fas fa-exclamation-triangle",
+        };
 
-    const messageSpan = document.createElement("span");
-    messageSpan.className = "toast-message";
-    messageSpan.textContent = message; // Use textContent to safely insert text
+        const icon = document.createElement("i");
+        icon.className = `toast-icon ${icons[type]}`;
 
-    const closeButton = document.createElement("button");
-    closeButton.className = "toast-close";
-    closeButton.onclick = function () {
-      this.parentElement.remove();
-    };
+        const messageSpan = document.createElement("span");
+        messageSpan.className = "toast-message";
+        messageSpan.textContent = message; // Use textContent to safely insert text
 
-    const closeIcon = document.createElement("i");
-    closeIcon.className = "fas fa-times";
-    closeButton.appendChild(closeIcon);
+        const closeButton = document.createElement("button");
+        closeButton.className = "toast-close";
+        closeButton.onclick = function () {
+            this.parentElement.remove();
+        };
 
-    toast.appendChild(icon);
-    toast.appendChild(messageSpan);
-    toast.appendChild(closeButton);
+        const closeIcon = document.createElement("i");
+        closeIcon.className = "fas fa-times";
+        closeButton.appendChild(closeIcon);
 
-    document.getElementById("toastContainer").appendChild(toast);
+        toast.appendChild(icon);
+        toast.appendChild(messageSpan);
+        toast.appendChild(closeButton);
 
-    // Auto remove after timeout
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.remove();
-      }
-    }, CONSTANTS.TOAST_AUTO_DISMISS_MS);
-  }
+        document.getElementById("toastContainer").appendChild(toast);
 
-  // Utility Functions
-  animateButton(button) {
-    button.style.transform = "scale(0.95)";
-    setTimeout(() => {
-      button.style.transform = "";
-    }, CONSTANTS.BUTTON_ANIMATION_MS);
-  }
+        // Auto remove after timeout
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, CONSTANTS.TOAST_AUTO_DISMISS_MS);
+    }
 
-  // Monthly View Toggle (placeholder for future enhancement)
-  toggleMonthlyView() {
-    this.showToast("View toggle coming soon!", "warning");
-  }
+    // Utility Functions
+    animateButton(button) {
+        button.style.transform = "scale(0.95)";
+        setTimeout(() => {
+            button.style.transform = "";
+        }, CONSTANTS.BUTTON_ANIMATION_MS);
+    }
+
+    // Monthly View Toggle (placeholder for future enhancement)
+    toggleMonthlyView() {
+        this.showToast("View toggle coming soon!", "warning");
+    }
 }
 
 // Global app instance
@@ -733,7 +729,7 @@ let app;
 
 // Initialize app when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-  app = new TimeTrackerApp();
+    app = new TimeTrackerApp();
 });
 
 // Global functions for HTML onclick handlers
