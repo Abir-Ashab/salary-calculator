@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TimeTracker Pro</title>
+    <meta name="description" content="Professional time tracking and salary management application">
+    <title>SalaryTracker Pro - Time & Salary Management</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- Loading Screen -->
-    <div class="loading-screen" id="loadingScreen">
+    <div class="loading-screen" id="loadingScreen" aria-label="Loading application">
         <div class="loading-content">
             <div class="loading-logo">
-                <i class="fas fa-clock"></i>
+                <i class="fas fa-clock" aria-hidden="true"></i>
             </div>
             <div class="loading-text">SalaryTracker Pro</div>
             <div class="loading-bar">
@@ -25,11 +26,11 @@
     <!-- Main App -->
     <div class="app-container" id="appContainer">
         <!-- Header -->
-        <header class="app-header">
+        <header class="app-header" role="banner">
             <div class="header-content">
                 <div class="logo-section">
                     <div class="logo-icon">
-                        <i class="fas fa-clock"></i>
+                        <i class="fas fa-clock" aria-hidden="true"></i>
                     </div>
                     <div class="logo-text">
                         <h1>SalaryTracker Pro</h1>
@@ -37,11 +38,11 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">
-                        <i class="fas fa-moon"></i>
+                    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle Dark Mode">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </button>
-                    <button class="export-btn" id="exportBtn" title="Export Data">
-                        <i class="fas fa-download"></i>
+                    <button class="export-btn" id="exportBtn" aria-label="Export data" title="Export Data">
+                        <i class="fas fa-download" aria-hidden="true"></i>
                         <span>Export</span>
                     </button>
                 </div>
@@ -49,12 +50,12 @@
         </header>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" role="main">
             <!-- Quick Stats Dashboard -->
-            <section class="dashboard-stats">
+            <section class="dashboard-stats" aria-label="Dashboard statistics">
                 <div class="stat-card stat-today">
                     <div class="stat-icon">
-                        <i class="fas fa-calendar-day"></i>
+                        <i class="fas fa-calendar-day" aria-hidden="true"></i>
                     </div>
                     <div class="stat-info">
                         <h3>Today's Hours</h3>
@@ -63,7 +64,7 @@
                 </div>
                 <div class="stat-card stat-month">
                     <div class="stat-icon">
-                        <i class="fas fa-calendar-alt"></i>
+                        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                     </div>
                     <div class="stat-info">
                         <h3>This Month</h3>
@@ -72,7 +73,7 @@
                 </div>
                 <div class="stat-card stat-earnings">
                     <div class="stat-icon">
-                        <i class="fas fa-rupee-sign"></i>
+                        <i class="fas fa-rupee-sign" aria-hidden="true"></i>
                     </div>
                     <div class="stat-info">
                         <h3>Monthly Earnings</h3>
@@ -81,7 +82,7 @@
                 </div>
                 <div class="stat-card stat-rate">
                     <div class="stat-icon">
-                        <i class="fas fa-coins"></i>
+                        <i class="fas fa-coins" aria-hidden="true"></i>
                     </div>
                     <div class="stat-info">
                         <h3>Hourly Rate</h3>
@@ -91,12 +92,12 @@
             </section>
 
             <!-- Input Section -->
-            <section class="input-section">
+            <section class="input-section" aria-label="Add time entry">
                 <div class="section-header">
-                    <h2><i class="fas fa-plus-circle"></i> Add Time Entry</h2>
+                    <h2><i class="fas fa-plus-circle" aria-hidden="true"></i> Add Time Entry</h2>
                     <div class="section-actions">
-                        <button class="quick-add-btn" onclick="quickAdd('today')" title="Add for today">
-                            <i class="fas fa-calendar-day"></i>
+                        <button class="quick-add-btn" id="quickAddBtn" title="Add for today" aria-label="Add entry for today">
+                            <i class="fas fa-calendar-day" aria-hidden="true"></i>
                             Today
                         </button>
                     </div>
@@ -107,13 +108,13 @@
                     <div class="rate-setting">
                         <div class="form-group">
                             <label for="hourlyRate">
-                                <i class="fas fa-coins"></i>
+                                <i class="fas fa-coins" aria-hidden="true"></i>
                                 Hourly Rate
                             </label>
                             <div class="input-with-action">
-                                <input type="number" id="hourlyRate" placeholder="300" value="300" min="1" step="0.01">
-                                <button class="btn btn-secondary" onclick="updateHourlyRate()">
-                                    <i class="fas fa-check"></i>
+                                <input type="number" id="hourlyRate" placeholder="300" value="300" min="1" step="0.01" aria-label="Hourly rate in BDT">
+                                <button class="btn btn-secondary" id="updateRateBtn" aria-label="Update hourly rate">
+                                    <i class="fas fa-check" aria-hidden="true"></i>
                                     Update
                                 </button>
                             </div>
@@ -121,51 +122,50 @@
                     </div>
 
                     <!-- Time Entry Form -->
-                    <div class="entry-form">
+                    <form class="entry-form" id="timeEntryForm" aria-label="Time entry form">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="dateInput">
-                                    <i class="fas fa-calendar"></i>
+                                    <i class="fas fa-calendar" aria-hidden="true"></i>
                                     Date
                                 </label>
-                                <input type="date" id="dateInput" class="form-input">
+                                <input type="date" id="dateInput" class="form-input" aria-label="Entry date" required>
                             </div>
                             <div class="form-group">
                                 <label for="timeInput">
-                                    <i class="fas fa-clock"></i>
+                                    <i class="fas fa-clock" aria-hidden="true"></i>
                                     Time Entry
                                 </label>
-                                <input type="text" id="timeInput" class="form-input" placeholder="8h20m, 7h2m" onkeypress="handleKeyPress(event)">
-                               
+                                <input type="text" id="timeInput" class="form-input" placeholder="8h20m, 7h2m" aria-label="Hours and minutes" required>
                             </div>
                             <div class="form-group">
-                                <button class="btn btn-primary btn-add" onclick="addTimeEntry()">
-                                    <i class="fas fa-plus"></i>
+                                <button type="submit" class="btn btn-primary btn-add" aria-label="Add time entry">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
                                     <span>Add Entry</span>
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </section>
 
             <!-- Time Entries List -->
-            <section class="entries-section">
+            <section class="entries-section" aria-label="Recent entries">
                 <div class="section-header">
-                    <h2><i class="fas fa-list"></i> Recent Entries</h2>
+                    <h2><i class="fas fa-list" aria-hidden="true"></i> Recent Entries</h2>
                     <div class="section-actions">
-                        <select id="filterMonth" class="filter-select" onchange="filterEntries()">
+                        <select id="filterMonth" class="filter-select" aria-label="Filter entries by month">
                             <option value="all">All Time</option>
                         </select>
-                        <button class="clear-btn" onclick="clearAllEntries()" title="Clear All">
-                            <i class="fas fa-trash"></i>
+                        <button class="clear-btn" id="clearAllBtn" title="Clear All" aria-label="Delete all entries">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="entries-container" id="timeEntries">
+                <div class="entries-container" id="timeEntries" role="list">
                     <div class="empty-state">
-                        <i class="fas fa-clock"></i>
+                        <i class="fas fa-clock" aria-hidden="true"></i>
                         <h3>No time entries yet</h3>
                         <p>Add your first entry above to start tracking!</p>
                     </div>
@@ -173,12 +173,12 @@
             </section>
 
             <!-- Monthly Breakdown -->
-            <section class="monthly-section" id="monthlySection" style="display: none;">
+            <section class="monthly-section" id="monthlySection" aria-label="Monthly breakdown" hidden>
                 <div class="section-header">
-                    <h2><i class="fas fa-chart-bar"></i> Monthly Breakdown</h2>
+                    <h2><i class="fas fa-chart-bar" aria-hidden="true"></i> Monthly Breakdown</h2>
                     <div class="section-actions">
-                        <button class="toggle-view-btn" id="toggleViewBtn" onclick="toggleMonthlyView()">
-                            <i class="fas fa-th-large"></i>
+                        <button class="toggle-view-btn" id="toggleViewBtn" aria-label="Toggle monthly view">
+                            <i class="fas fa-th-large" aria-hidden="true"></i>
                             Grid View
                         </button>
                     </div>
@@ -188,7 +188,7 @@
         </main>
 
         <!-- Toast Notifications -->
-        <div class="toast-container" id="toastContainer"></div>
+        <div class="toast-container" id="toastContainer" role="region" aria-label="Notifications" aria-live="polite"></div>
     </div>
 
     <!-- Scripts -->
