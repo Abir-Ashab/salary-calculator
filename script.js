@@ -112,7 +112,7 @@ class TimeTrackerApp {
      * Time Parsing - Improved with better pattern matching and validation
      * 
      * Supported formats:
-     * - Hour and minute: "8h30m" or "8h 30m" (with single space)
+     * - Hour and minute: "8h30m" or "8h 30m" (with or without single space)
      * - Hours only: "8h"
      * - Minutes only: "30m"
      * - Colon format: "8:30"
@@ -133,7 +133,7 @@ class TimeTrackerApp {
             return { hours: 0, minutes: 0, valid: false };
         }
 
-        // Pattern: 8h30m or 8h 30m (single space)
+        // Pattern: 8h30m or 8h 30m (optional single space)
         let match = normalized.match(/^(\d+)h\s?(\d+)m$/);
         if (match) {
             const hours = parseInt(match[1]);
