@@ -108,36 +108,76 @@ class TimeTrackerApp {
         document.getElementById('dateInput').value = today;
     }
     
-    // Time Parsing
+    // Time Parsing - Improved with better pattern matching and validation
     parseTimeString(timeStr) {
-        const patterns = [
-            /^(\d+)h(\d+)m$/,     // 8h30m
-            /^(\d+)h$/,           // 8h
-            /^(\d+)m$/,           // 30m
-            /^(\d+):(\d+)$/,      // 8:30
-            /^(\d+)\.(\d+)$/      // 8.5
-        ];
+        // Normalize input: trim and convert to lowercase
+        const normalized = timeStr.trim().toLowerCase();
         
-        for (const pattern of patterns) {
-            const match = timeStr.match(pattern);
-            if (match) {
-                if (pattern.toString().includes('h') && pattern.toString().includes('m')) {
-                    return { hours: parseInt(match[1]), minutes: parseInt(match[2]), valid: true };
-                } else if (pattern.toString().includes('h')) {
-                    return { hours: parseInt(match[1]), minutes: 0, valid: true };
-                } else if (pattern.toString().includes('m')) {
-                    return { hours: 0, minutes: parseInt(match[1]), valid: true };
-                } else if (pattern.toString().includes(':')) {
-                    return { hours: parseInt(match[1]), minutes: parseInt(match[2]), valid: true };
-                } else if (pattern.toString().includes('\\.')) {
-                    const hours = parseInt(match[1]);
-                    const minutes = Math.round(parseFloat(`0.${match[2]}`) * 60);
-                    return { hours, minutes, valid: true };
-                }
-            }
+        // Validate input is not empty
+        if (!normalized) {
+            return { hours: 0, minutes: 0, valid: false };
+        }
+        
+        // Pattern: 8h30m or 8h 30m
+        let match = normalized.match(/^(\d+)h\s*(\d+)m$/);
+        if (match) {
+            const hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            return this.validateTimeValues(hours, minutes);
+        }
+        
+        // Pattern: 8h
+        match = normalized.match(/^(\d+)h$/);
+        if (match) {
+            const hours = parseInt(match[1]);
+            return this.validateTimeValues(hours, 0);
+        }
+        
+        // Pattern: 30m
+        match = normalized.match(/^(\d+)m$/);
+        if (match) {
+            const minutes = parseInt(match[1]);
+            return this.validateTimeValues(0, minutes);
+        }
+        
+        // Pattern: 8:30
+        match = normalized.match(/^(\d+):(\d+)$/);
+        if (match) {
+            const hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            return this.validateTimeValues(hours, minutes);
+        }
+        
+        // Pattern: 8.5 (decimal hours)
+        match = normalized.match(/^(\d+)\.(\d+)$/);
+        if (match) {
+            const hours = parseInt(match[1]);
+            const decimalPart = parseInt(match[2]);
+            const minutes = Math.round((decimalPart / Math.pow(10, match[2].length)) * 60);
+            return this.validateTimeValues(hours, minutes);
         }
         
         return { hours: 0, minutes: 0, valid: false };
+    }
+    
+    // Validate time values are within reasonable bounds
+    validateTimeValues(hours, minutes) {
+        // Check if values are valid numbers
+        if (isNaN(hours) || isNaN(minutes)) {
+            return { hours: 0, minutes: 0, valid: false };
+        }
+        
+        // Check reasonable bounds (0-24 hours, 0-59 minutes)
+        if (hours < 0 || hours > 24 || minutes < 0 || minutes > 59) {
+            return { hours: 0, minutes: 0, valid: false };
+        }
+        
+        // Check if total time is not zero
+        if (hours === 0 && minutes === 0) {
+            return { hours: 0, minutes: 0, valid: false };
+        }
+        
+        return { hours, minutes, valid: true };
     }
     
     // Time Formatting
