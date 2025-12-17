@@ -1,3 +1,5 @@
+import { CONSTANTS } from "./constants.js";
+
 // Application State
 class TimeTrackerApp {
     constructor() {
@@ -350,12 +352,18 @@ class TimeTrackerApp {
         const dateInput = document.getElementById('dateInput');
         const today = new Date().toISOString().split('T')[0];
 
-        switch (type) {
-            case 'today':
-                dateInput.value = today;
-                document.getElementById('timeInput').focus();
-                break;
+        if (type === '15m') {
+            dateInput.value = today;
+            document.getElementById('timeInput').value = '15m';
+        } else if (type === '30m') {
+            dateInput.value = today;
+            document.getElementById('timeInput').value = '30m';
+        } else if (type === '1h') {
+            dateInput.value = today;
+            document.getElementById('timeInput').value = '1h';
         }
+
+        this.addTimeEntry();
     }
 
     // Filter Entries
@@ -456,7 +464,10 @@ class TimeTrackerApp {
                 <div class="empty-state">
                     <i class="fas fa-clock"></i>
                     <h3>No time entries found</h3>
-                    <p>${this.currentFilter === 'all' ? 'Add your first entry above to start tracking!' : 'No entries for the selected month.'}</p>
+                    <p>${this.currentFilter === "all"
+                    ? "Add your first entry above to start tracking!"
+                    : "No entries for the selected month."
+                }</p>
                 </div>
             `;
             return;
@@ -469,17 +480,22 @@ class TimeTrackerApp {
             return `
                 <div class="time-entry">
                     <div class="entry-info">
-                        <div class="entry-date">${this.formatDate(entry.date)}</div>
-                        <div class="entry-time">${entry.original} → ${this.formatTime(totalMinutes)} → ${earnings}</div>
+                        <div class="entry-date">${this.formatDate(
+                entry.date
+            )}</div>
+                        <div class="entry-time">${entry.original
+                } → ${this.formatTime(totalMinutes)} → ${earnings}</div>
                     </div>
                     <div class="entry-actions">
-                        <button class="delete-btn" onclick="app.removeTimeEntry(${entry.id})" title="Delete entry">
+                        <button class="delete-btn" onclick="app.removeTimeEntry(${entry.id
+                })" title="Delete entry">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
             `;
-        }).join('');
+        })
+            .join("");
     }
 
     // Render Monthly Breakdown
@@ -544,7 +560,9 @@ class TimeTrackerApp {
                 </div>
                 <div class="month-stats">
                     <div class="stat-item">
-                        <span class="stat-value">${this.formatTime(data.totalMinutes)}</span>
+                        <span class="stat-value">${this.formatTime(
+            data.totalMinutes
+        )}</span>
                         <span>Total Hours</span>
                     </div>
                     <div class="stat-item">
@@ -552,11 +570,15 @@ class TimeTrackerApp {
                         <span>Work Days</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-value">${avgHoursPerDay.toFixed(1)}h</span>
+                        <span class="stat-value">${avgHoursPerDay.toFixed(
+            1
+        )}h</span>
                         <span>Avg/Day</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-value">${Math.round(avgSalaryPerDay).toLocaleString()}</span>
+                        <span class="stat-value">${Math.round(
+            avgSalaryPerDay
+        ).toLocaleString()}</span>
                         <span>Avg Salary/Day</span>
                     </div>
                 </div>
@@ -652,12 +674,13 @@ class TimeTrackerApp {
 let app;
 
 // Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     app = new TimeTrackerApp();
 });
 
 // Global functions for HTML onclick handlers
 window.quickAdd = (type) => app.quickAdd(type);
+window.nextDate = () => app.nextDate();
 window.addTimeEntry = () => app.addTimeEntry();
 window.updateHourlyRate = () => app.updateHourlyRate();
 window.clearAllEntries = () => app.clearAllEntries();
