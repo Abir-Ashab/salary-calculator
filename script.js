@@ -718,13 +718,17 @@ let app;
 // Initialize app when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   app = new TimeTrackerApp();
-});
 
-// Global functions for HTML onclick handlers
-window.quickAdd = (type) => app.quickAdd(type);
-window.nextDate = () => app.nextDate();
-window.addTimeEntry = () => app.addTimeEntry();
-window.updateHourlyRate = () => app.updateHourlyRate();
-window.clearAllEntries = () => app.clearAllEntries();
-window.filterEntries = () => app.filterEntries();
-window.toggleMonthlyView = () => app.toggleMonthlyView();
+  // Expose to window for inline event handlers
+  window.app = app;
+
+  // Global functions for HTML onclick handlers
+  window.quickAdd = (type) => app.quickAdd(type);
+  window.nextDate = () => app.nextDate();
+  window.addTimeEntry = () => app.addTimeEntry();
+  window.updateHourlyRate = () => app.updateHourlyRate();
+  window.removeTimeEntry = (id) => app.removeTimeEntry(id);
+  window.clearAllEntries = () => app.clearAllEntries();
+  window.filterEntries = () => app.filterEntries();
+  window.toggleMonthlyView = () => app.toggleMonthlyView();
+});
